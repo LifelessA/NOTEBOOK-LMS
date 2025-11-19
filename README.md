@@ -149,7 +149,7 @@ pip install fastapi uvicorn python-multipart matplotlib pandas jedi
 ### **2. Start Server**
 
 ```bash
-uvicorn server:app --reload
+python server.py
 ```
 
 ### **3. Open Browser**
