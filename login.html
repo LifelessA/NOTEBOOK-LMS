@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LMS Login</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --cell-bg: #2d2d2d;
+            --border-color: #3a3a3a;
+            --primary-color: #007acc;
+        }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg-color);
+            color: #d4d4d4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        #login-box {
+            background: var(--cell-bg);
+            padding: 2.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            width: 320px;
+        }
+        h2 {
+            text-align: center;
+            margin-top: 0;
+            color: #fff;
+        }
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #aaa;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 0.75rem;
+            background: #1e1e1e;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: #d4d4d4;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary-color);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #005a9e;
+        }
+        #error-msg {
+            color: #ff5555;
+            text-align: center;
+            margin-top: 1rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="login-box">
+        <h2>LMS Login</h2>
+        <form id="login-form">
+            <div class="input-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" required>
+            </div>
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required>
+            </div>
+            <button type="submit">Login</button>
+            <p id="error-msg">Something went wrong</p>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('error-msg');
+
+            const response = await fetch('/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                errorMsg.style.display = 'none';
+                // Redirect based on role
+                if (data.role === 'admin') {
+                    window.location.href = '/admin';
+                } else if (data.role === 'teacher') {
+                    window.location.href = '/teacher';
+                } else if (data.role === 'student') {
+                    window.location.href = '/student';
+                } else {
+                    window.location.href = '/'; // Fallback
+                }
+            } else {
+                errorMsg.textContent = data.message || 'Login failed';
+                errorMsg.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

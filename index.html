@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Python Notebook</title>
+    <meta charset="utf-t">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/theme/material-darker.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/hint/show-hint.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/markdown/markdown.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/comment/comment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/selection/active-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --cell-bg: #2d2d2d;
+            --border-color: #3a3a3a;
+            --toolbar-bg: #252526;
+        }
+        body {
+            margin: 0;
+            background: var(--bg-color);
+            color: #d4d4d4;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        #menu-bar {
+            background: #333;
+            padding: 5px 10px;
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .menu {
+            position: relative;
+            margin-right: 15px;
+        }
+        .menu-btn {
+            background: none;
+            border: none;
+            color: #d4d4d4;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .menu-content {
+            display: none;
+            position: absolute;
+            background: #2d2d2d;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+        .menu-content button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            padding: 8px 16px;
+            color: #d4d4d4;
+            cursor: pointer;
+        }
+        .menu-content button:hover {
+            background: #3a3a3a;
+        }
+        .menu-content button#review-title {
+            background: #1e1e1e;
+            color: #aaa;
+            cursor: default;
+        }
+        .menu-content button#review-title:hover {
+            background: #1e1e1e;
+        }
+        .menu-content button#logout-btn {
+            color: #ff8888;
+        }
+        .menu:hover .menu-content {
+            display: block;
+        }
+        #toolbar {
+            padding: 8px;
+            background: var(--toolbar-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        #cells { padding: 16px; }
+        .cell {
+            margin: 12px 0;
+            background: var(--cell-bg);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+        }
+        .controls {
+            padding: 6px;
+            background: #333;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 6px;
+            border-radius: 6px 6px 0 0;
+            flex-wrap: wrap;
+        }
+        .controls button {
+            background: #404040;
+            border: 1px solid #4d4d4d;
+            color: #d4d4d4;
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .controls button:hover {
+            background: #2a2d2e;
+        }
+        .CodeMirror {
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            height: auto;
+            padding: 8px 0;
+        }
+        .output {
+            padding: 12px;
+            background: #1e1e1e;
+            border-top: 1px solid var(--border-color);
+            font-family: 'Consolas', monospace;
+            white-space: pre-wrap;
+            line-height: 1.5;
+            overflow-x: auto;
+        }
+        .output img, .output table {
+            max-width: 100%;
+            height: auto;
+        }
+        .error { color: #ff5555; background: #2d1e1e; padding: 8px; border-radius: 4px; }
+        .running-indicator { color: #55aaff; }
+        #auto-save-btn.active {
+            background-color: #4CAF50;
+        }
+        .CodeMirror-hints {
+            background: #2d2d2d;
+            border: 1px solid #3a3a3a;
+            border-radius: 4px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+        .CodeMirror-hint {
+            color: #d4d4d4;
+            padding: 4px 8px;
+            cursor: pointer;
+        }
+        .CodeMirror-hint-active {
+            background: #3a3a3a;
+            color: #ffffff;
+        }
+        /* Read-only styles for assignments */
+        .read-only-cell .controls button { display: none; }
+        .read-only-cell .controls .run-btn { display: inline-block; }
+        .read-only-cell .CodeMirror { background: #252526; }
+
+        /* New styles for grading */
+        .marks-input { margin-left: auto; display: flex; align-items: center; gap: 5px; }
+        .marks-input input { width: 60px; background: #1e1e1e; color: #d4d4d4; border: 1px solid #3a3a3a; }
+        .grading-controls { padding: 8px; background: #333; border-top: 1px solid #3a3a3a; display: flex; gap: 10px; }
+        .grading-controls button { font-size: 0.9rem; padding: 5px 15px; }
+        .grading-controls button.correct { background-color: #28a745; }
+        .grading-controls button.wrong { background-color: #dc3545; }
+        .grade-display { padding: 8px; background: #333; border-top: 1px solid #3a3a3a; font-weight: bold; }
+        .grade-display.status-correct { color: #28a745; }
+        .grade-display.status-wrong { color: #dc3545; }
+        .grade-display.status-pending { color: #ffc107; }
+    </style>
+</head>
+<body>
+    <div id="menu-bar">
+        <div class="menu">
+            <button class="menu-btn">File</button>
+            <div class="menu-content">
+                <button id="post-assignment-btn" style="background-color: #007acc;">Post Assignment</button>
+                <button id="submit-assignment-btn" style="background-color: #4CAF50;">Submit Assignment</button>
+                <button id="review-title">Review Mode (Read-Only)</button>
+                
+                <button id="new-btn">New</button>
+                <button id="save-as-btn">Save Local Draft</button>
+                <button id="load-btn">Open Local Draft</button>
+                <button id="auto-save-btn">Auto Save: Off</button>
+                <button id="export-pdf-btn">Export PDF</button>
+                <button id="logout-btn">Logout</button>
+            </div>
+        </div>
+        <div class="menu">
+            <button class="menu-btn">Edit</button>
+            <div class="menu-content">
+                <button id="undo-btn">Undo</button>
+                <button id="redo-btn">Redo</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toolbar">
+        <button id="add-code-btn" onclick="addCell('code')">+ Code</button>
+        <button id="add-md-btn" onclick="addCell('markdown')">+ Markdown</button>
+        <button onclick="openDesignTool()">Design</button>
+        <button onclick="runAllCells()" style="margin-left: auto">▶ Run All</button>
+    </div>
+    <h2 id="total-score" style="padding: 0 16px; display: none;"></h2>
+    <div id="cells"></div>
+
+    <script>
+        // WebSocket connection
+        const sessionId = 'notebook_' + Date.now();
+        const socket = new WebSocket(`ws://localhost:8000/ws/${sessionId}`);
+        const editors = {};
+        
+        // --- LMS State ---
+        let notebookMode = 'teacher_create'; // 'teacher_create', 'student_solve', 'review'
+        let currentAssignmentId = null;
+        let currentSubmissionId = null;
+        let userRole = null; // Will be fetched
+        let currentSemester = null;
+        let currentSubject = null;
+        
+        socket.onopen = () => console.log("Connected to Python server");
+        socket.onclose = () => console.log("Disconnected from Python server");
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'output') {
+                // Sanitize output slightly before rendering
+                document.getElementById(`output_${data.cell_id}`).innerHTML = data.output;
+            }
+        };
+
+        function addCell(type = 'code', isReadOnly = false, options = {}) {
+            const cellId = 'cell_' + Math.random().toString(36).slice(2, 11);
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.id = cellId;
+            cell.dataset.type = type;
+            if (isReadOnly) cell.classList.add('read-only-cell');
+            
+            // Student answer cells are code cells, but we track them specifically
+            if (notebookMode === 'student_solve' && type === 'code') {
+                cell.dataset.answerCell = 'true';
+            }
+
+            // --- Controls ---
+            let marksInput = '';
+            if (notebookMode === 'teacher_create' && type === 'markdown') {
+                marksInput = `<div class="marks-input"><label>Marks: </label><input type="number" id="marks_${cellId}" min="0" value="10"></div>`;
+            }
+            
+            // Show run button in review mode for teachers, even if read-only
+            const showRunButton = !isReadOnly || (notebookMode === 'review');
+
+            // --- Grading ---
+            let gradingControls = '';
+            if (notebookMode === 'review' && options.questionIndex !== undefined && userRole === 'teacher') {
+                gradingControls = `
+                    <div class="grading-controls" id="grading_${cellId}">
+                        <button class="correct" onclick="gradeQuestion(${currentSubmissionId}, ${options.questionIndex}, 'correct')">✔️ Correct</button>
+                        <button class="wrong" onclick="gradeQuestion(${currentSubmissionId}, ${options.questionIndex}, 'wrong')">❌ Wrong</button>
+                    </div>`;
+            }
+             let gradeDisplay = '';
+            if (notebookMode === 'review' && options.grade) {
+                gradeDisplay = `<div class="grade-display status-${options.grade.status}">Status: ${options.grade.status} | Score: ${options.grade.score}</div>`;
+            }
+
+            cell.innerHTML = `
+                <div class="controls">
+                    ${showRunButton ? `<button class="run-btn" onclick="runCell('${cellId}')">Run</button>` : ''}
+                    ${!isReadOnly ? `<button onclick="deleteCell('${cellId}')">Delete</button>` : ''}
+                    ${!isReadOnly ? `<button onclick="moveCell('${cellId}', 'up')">↑</button>` : ''}
+                    ${!isReadOnly ? `<button onclick="moveCell('${cellId}', 'down')">↓</button>` : ''}
+                    ${marksInput}
+                </div>
+                <textarea id="code_${cellId}"></textarea>
+                <div id="output_${cellId}" class="output"></div>
+                ${gradingControls}
+                ${gradeDisplay}
+            `;
+            document.getElementById('cells').appendChild(cell);
+
+            const editor = CodeMirror.fromTextArea(document.getElementById(`code_${cellId}`), {
+                mode: type === 'code' ? 'python' : 'markdown', // Explicitly set python mode for code
+                theme: 'material-darker',
+                lineNumbers: true,
+                readOnly: isReadOnly,
+                lineWrapping: type === 'markdown',
+                matchBrackets: true,
+                autoCloseBrackets: true,
+            });
+            editors[cellId] = editor;
+
+            if (type === 'markdown' && !isReadOnly) {
+                const outputDiv = document.getElementById(`output_${cellId}`);
+                const editorWrapper = editor.getWrapperElement();
+                outputDiv.style.display = 'none';
+                outputDiv.addEventListener('click', () => {
+                    editorWrapper.style.display = 'block';
+                    outputDiv.style.display = 'none';
+                    editor.focus();
+                });
+            }
+            return cellId;
+        }
+
+        function runCell(cellId) {
+            const cell = document.getElementById(cellId);
+            const cellType = cell.dataset.type;
+
+            if (cellType === 'code') {
+                document.getElementById(`output_${cellId}`).innerHTML = '<div class="running-indicator">Running...</div>';
+                socket.send(JSON.stringify({ type: 'run_code', cell_id: cellId, code: editors[cellId].getValue() }));
+            } else if (cellType === 'markdown') {
+                const outputDiv = document.getElementById(`output_${cellId}`);
+                const editorWrapper = editors[cellId].getWrapperElement();
+                outputDiv.innerHTML = marked.parse(editors[cellId].getValue());
+                outputDiv.style.display = 'block';
+                if(editorWrapper) editorWrapper.style.display = 'none';
+            }
+        }
+
+        function deleteCell(cellId) {
+            const cell = document.getElementById(cellId);
+            if (!cell) return;
+
+            // In student solve mode, a code cell is an answer cell, paired with a question
+            if (notebookMode === 'student_solve' && cell.dataset.type === 'code' && cell.previousElementSibling?.dataset.type === 'markdown') {
+                 if(confirm("This will delete the question and the answer cell. Are you sure?")){
+                    if(cell.previousElementSibling) cell.previousElementSibling.remove();
+                    cell.remove();
+                 }
+            } else {
+                cell.remove();
+            }
+            delete editors[cellId];
+        }
+
+        function moveCell(cellId, direction) {
+            const cell = document.getElementById(cellId);
+            const parent = cell.parentNode;
+            if (direction === 'up' && cell.previousElementSibling) {
+                parent.insertBefore(cell, cell.previousElementSibling);
+            } else if (direction === 'down' && cell.nextElementSibling) {
+                parent.insertBefore(cell.nextElementSibling, cell);
+            }
+        }
+        
+        function runAllCells() { Object.keys(editors).forEach(id => runCell(id)); }
+        function clearCells() {
+            document.getElementById('cells').innerHTML = '';
+            for (let id in editors) delete editors[id];
+        }
+        function openDesignTool() { window.open(`http://localhost:8000/design?notebook_session_id=${sessionId}`); }
+
+        // --- NEW LMS FUNCTIONS ---
+        async function loadAssignment(id) {
+            const response = await fetch(`/api/student/assignment/${id}`);
+            if (!response.ok) {
+                alert((await response.json()).message);
+                window.location.href = '/student';
+                return;
+            }
+            const questions = await response.json();
+            clearCells();
+            questions.forEach(q => {
+                const qCellId = addCell('markdown', true);
+                editors[qCellId].setValue(q.content);
+                runCell(qCellId);
+                addCell('code', false); // Student's answer cell
+            });
+        }
+
+        async function loadSubmission(id) {
+            const response = await fetch(`/api/submission_details/${id}`);
+            if (!response.ok) {
+                alert("Error loading submission.");
+                return;
+            }
+            
+            const data = await response.json();
+            const questions = JSON.parse(data.questions);
+            const answers = JSON.parse(data.answers);
+            const grades = JSON.parse(data.grades || '[]');
+
+            clearCells();
+            let totalScore = 0;
+            let maxScore = 0;
+
+            questions.forEach((q, i) => {
+                const grade = grades.find(g => g.question_index === i) || { status: 'pending', score: 0 };
+                
+                // Render Question
+                const qCellId = addCell('markdown', true);
+                editors[qCellId].setValue(`**Question ${i+1} (${q.marks} marks)**\n\n${q.content}`);
+                runCell(qCellId);
+
+                // Render Student's Answer
+                const aCellId = addCell('code', true, { 
+                    questionIndex: i, 
+                    grade: grade,
+                    forceRunButton: true // Allow teacher to run code
+                });
+                editors[aCellId].setValue(answers[i]?.code || '// No answer submitted');
+                
+                totalScore += grade.score;
+                maxScore += q.marks;
+            });
+
+            document.getElementById('total-score').textContent = `Total Score: ${totalScore} / ${maxScore}`;
+            document.getElementById('total-score').style.display = 'block';
+        }
+        
+        async function postAssignment() {
+            const title = prompt("Enter assignment title:");
+            if (!title) return;
+            
+            const questionCells = Array.from(document.querySelectorAll('.cell[data-type="markdown"]'));
+            const questions = questionCells.map(cell => {
+                const marks = document.getElementById(`marks_${cell.id}`).value;
+                return {
+                    content: editors[cell.id].getValue(),
+                    marks: parseInt(marks, 10) || 0
+                };
+            });
+
+            const response = await fetch('/api/teacher/assignment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    title: title, 
+                    questions: JSON.stringify(questions),
+                    semester: currentSemester,
+                    subject: currentSubject
+                })
+            });
+            
+            if (response.ok) {
+                alert('Assignment posted!');
+                window.location.href = '/teacher';
+            } else {
+                alert('Error posting assignment.');
+            }
+        }
+        
+        async function submitAssignment() {
+            if (!currentAssignmentId || !confirm('Are you sure you want to submit?')) return;
+            
+            const answerCells = Array.from(document.querySelectorAll('.cell[data-answer-cell="true"]'));
+            const answers = answerCells.map(cell => ({ code: editors[cell.id].getValue() }));
+            
+            const response = await fetch(`/api/student/submit/${currentAssignmentId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answers: answers })
+            });
+            
+            if (response.ok) {
+                alert('Assignment submitted!');
+                window.location.href = '/student';
+            } else {
+                alert((await response.json()).message);
+            }
+        }
+
+        async function gradeQuestion(submissionId, questionIndex, status) {
+            console.log(`Grading submission ${submissionId}, question ${questionIndex} as ${status}`);
+            const response = await fetch('/api/teacher/grade_submission', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ submission_id: submissionId, question_index: questionIndex, status: status })
+            });
+            if(response.ok) {
+                alert(`Question ${questionIndex + 1} marked as ${status}.`);
+                loadSubmission(submissionId); // Reload to show updated grade
+            } else {
+                alert("Failed to update grade. Please try again.");
+            }
+        }
+        
+        // --- Init and Menu Logic ---
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+
+        async function initializeNotebook() {
+            userRole = getCookie('user_role');
+            const urlParams = new URLSearchParams(window.location.search);
+            const assignmentId = urlParams.get('assignment_id');
+            const submissionId = urlParams.get('submission_id');
+            currentSemester = urlParams.get('semester');
+            currentSubject = urlParams.get('subject');
+            
+            // Get UI elements
+            const postBtn = document.getElementById('post-assignment-btn');
+            const submitBtn = document.getElementById('submit-assignment-btn');
+            const reviewTitle = document.getElementById('review-title');
+            const toolbar = document.getElementById('toolbar');
+            const addCodeBtn = document.getElementById('add-code-btn');
+            const fileMenuButtons = ['new-btn', 'save-as-btn', 'load-btn', 'auto-save-btn'];
+
+            // Reset all buttons first
+            postBtn.style.display = 'none';
+            submitBtn.style.display = 'none';
+            reviewTitle.style.display = 'none';
+            toolbar.style.display = 'none'; // Hide toolbar by default
+            fileMenuButtons.forEach(id => document.getElementById(id).style.display = 'none'); // Hide file menu buttons by default
+
+            if (assignmentId) {
+                // --- Student Solve Mode ---
+                notebookMode = 'student_solve';
+                currentAssignmentId = assignmentId;
+                submitBtn.style.display = 'block';
+                loadAssignment(assignmentId);
+
+            } else if (submissionId) {
+                // --- Review Mode (Teacher or Student) ---
+                notebookMode = 'review';
+                currentSubmissionId = submissionId;
+                reviewTitle.style.display = 'block';
+                loadSubmission(submissionId);
+
+            } else if (userRole === 'teacher') {
+                // --- Teacher Create Mode ---
+                notebookMode = 'teacher_create';
+                postBtn.style.display = 'block';
+                toolbar.style.display = 'flex'; // Show toolbar for teacher create
+                addCodeBtn.style.display = 'none'; // Hide "+ Code" button for teachers
+                fileMenuButtons.forEach(id => document.getElementById(id).style.display = 'block'); // Show file menu buttons
+                if (document.querySelectorAll('.cell').length === 0) {
+                    addCell('markdown');
+                }
+
+            } else {
+                // --- Fallback (Student or unauthorized user landing on root) ---
+                notebookMode = 'student_solve'; // Default to student view
+                document.getElementById('cells').innerHTML = '<h1 style="text-align: center; margin-top: 50px;">Please select an assignment from your dashboard.</h1>';
+            }
+        }
+        
+        // --- Event Listeners ---
+        document.getElementById('logout-btn').addEventListener('click', () => { window.location.href = '/logout'; });
+        document.getElementById('post-assignment-btn').addEventListener('click', postAssignment);
+        document.getElementById('submit-assignment-btn').addEventListener('click', submitAssignment);
+        
+        document.getElementById('new-btn').addEventListener('click', () => {
+            if (confirm('Start new session? Unsaved changes will be lost.')) {
+                clearCells();
+                addCell('markdown');
+            }
+        });
+
+        // Placeholder for original save/load functionality if needed in teacher mode
+        document.getElementById('save-as-btn').addEventListener('click', () => alert("Save as local draft is for non-assignment work."));
+        document.getElementById('load-btn').addEventListener('click', () => alert("Loading a local draft will overwrite your current assignment."));
+        document.getElementById('auto-save-btn').addEventListener('click', () => alert("Auto-save is not available for assignments."));
+
+
+        initializeNotebook();
+    </script>
+</body>
+</html>

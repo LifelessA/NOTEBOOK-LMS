@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teacher Dashboard</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --cell-bg: #2d2d2d;
+            --border-color: #3a3a3a;
+            --primary-color: #007acc;
+        }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg-color);
+            color: #d4d4d4;
+            margin: 0;
+            padding: 2rem;
+        }
+        h2 { border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+        .container {
+            display: flex;
+            gap: 2rem;
+        }
+        .panel {
+            background: var(--cell-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            flex: 1;
+        }
+        button {
+            padding: 0.75rem 1.5rem;
+            background: var(--primary-color);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: #005a9e; }
+        .list { list-style: none; padding: 0; }
+        .list li {
+            background: #333;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+        .list li:hover { background: #444; }
+        .list li small { color: #aaa; margin-left: 10px; }
+        
+        #logout-btn {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            background: #c82333;
+        }
+        .settings-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: #333;
+            border-radius: 4px;
+        }
+        .input-group { margin-bottom: 1rem; }
+        .input-group label { display: block; margin-bottom: 0.5rem; color: #aaa; }
+        .input-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: #1e1e1e;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: #d4d4d4;
+            font-size: 1rem;
+            box-sizing: border-box;
+            min-height: 80px;
+        }
+        #ticket-list .ticket-status {
+            font-style: italic;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+        #ticket-list .ticket-status.open { background-color: #28a745; color: white; }
+        #ticket-list .ticket-status.closed { background-color: #6c757d; color: white; }
+        #msg { margin-top: 1rem; display: none; }
+        #msg.success { color: #4CAF50; }
+        #msg.error { color: #ff5555; }
+    </style>
+</head>
+<body>
+    <a href="/logout"><button id="logout-btn">Logout</button></a>
+    <h1>Teacher Dashboard</h1>
+    
+    <div class="panel" style="margin-bottom: 2rem;">
+        <h2>Controls</h2>
+        <div class="input-group">
+            <label for="semester">Semester</label>
+            <select id="semester" name="semester"></select>
+        </div>
+        <div class="input-group">
+            <label for="subject">Subject</label>
+            <select id="subject" name="subject"></select>
+        </div>
+        <a href="#"><button id="create-assignment-btn">Create New Assignment</button></a>
+        <div style="margin-top: 1rem;">
+            <label class="settings-label">
+                <input type="checkbox" id="autocomplete-toggle">
+                Enable Autocomplete for Students
+            </label>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="panel">
+            <h2>My Assignments</h2>
+            <ul id="assignments-list" class="list">
+                </ul>
+        </div>
+        <div class="panel">
+            <h2>Submissions</h2>
+            <h3 id="submissions-title" style="display: none;"></h3>
+            <ul id="submissions-list" class="list">
+                </ul>
+        </div>
+    </div>
+
+    <div class="container" style="margin-top: 2rem;">
+        <div class="panel">
+            <h2>Support Tickets</h2>
+            <form id="ticket-form">
+                <div class="input-group">
+                    <label for="query_text">Request a change or report an issue</label>
+                    <textarea id="query_text" required></textarea>
+                </div>
+                <button type="submit">Submit Ticket</button>
+            </form>
+            <p id="msg"></p>
+            <h3 style="margin-top: 2rem;">My Tickets</h3>
+            <ul id="ticket-list" class="list"></ul>
+        </div>
+    </div>
+
+    <script>
+        const assignmentsList = document.getElementById('assignments-list');
+        const submissionsList = document.getElementById('submissions-list');
+        const submissionsTitle = document.getElementById('submissions-title');
+        const autocompleteToggle = document.getElementById('autocomplete-toggle');
+        const ticketList = document.getElementById('ticket-list');
+        const msgEl = document.getElementById('msg');
+
+        const semesterSelect = document.getElementById('semester');
+        const subjectSelect = document.getElementById('subject');
+        const createAssignmentBtn = document.getElementById('create-assignment-btn');
+
+        async function loadTeacherInfo() {
+            const response = await fetch('/api/teacher/info');
+            if (response.ok) {
+                const info = await response.json();
+                
+                semesterSelect.innerHTML = '<option value="">Select Semester</option>';
+                info.semesters.forEach(s => {
+                    const option = document.createElement('option');
+                    option.value = s;
+                    option.textContent = s;
+                    semesterSelect.appendChild(option);
+                });
+                
+                subjectSelect.innerHTML = '<option value="">Select Subject</option>';
+                info.subjects.forEach(s => {
+                    const option = document.createElement('option');
+                    option.value = s;
+                    option.textContent = s;
+                    subjectSelect.appendChild(option);
+                });
+            }
+        }
+
+        createAssignmentBtn.addEventListener('click', () => {
+            const semester = semesterSelect.value;
+            const subject = subjectSelect.value;
+
+            if (!semester || !subject) {
+                alert('Please select a semester and a subject.');
+                return;
+            }
+
+            window.location.href = `/?semester=${semester}&subject=${subject}`;
+        });
+
+        async function loadAssignments() {
+            const response = await fetch('/api/teacher/assignments');
+            if (response.ok) {
+                const assignments = await response.json();
+                assignmentsList.innerHTML = '';
+                assignments.forEach(a => {
+                    const li = document.createElement('li');
+                    li.textContent = a.title;
+                    li.dataset.id = a.id;
+                    li.innerHTML += ` <small>${new Date(a.created_at).toLocaleString()}</small>`;
+                    li.onclick = () => loadSubmissions(a.id, a.title);
+                    assignmentsList.appendChild(li);
+                });
+            }
+        }
+
+        async function loadSubmissions(assignmentId, title) {
+            submissionsTitle.textContent = `Submissions for: ${title}`;
+            submissionsTitle.style.display = 'block';
+            
+            const response = await fetch(`/api/teacher/submissions/${assignmentId}`);
+            if (response.ok) {
+                const submissions = await response.json();
+                submissionsList.innerHTML = '';
+                if (submissions.length === 0) {
+                    submissionsList.innerHTML = '<li>No submissions yet.</li>';
+                    return;
+                }
+                submissions.forEach(s => {
+                    const li = document.createElement('li');
+                    li.textContent = `Submission by: ${s.username}`;
+                    li.innerHTML += ` <small>${new Date(s.submitted_at).toLocaleString()}</small>`;
+                    // Link to review the submission in the notebook (read-only)
+                    li.onclick = () => window.open(`/?submission_id=${s.id}`, '_blank');
+                    submissionsList.appendChild(li);
+                });
+            }
+        }
+        
+        async function loadSettings() {
+            const response = await fetch('/api/teacher/settings');
+            if (response.ok) {
+                const settings = await response.json();
+                autocompleteToggle.checked = settings.enable_autocomplete;
+            }
+        }
+        
+        autocompleteToggle.addEventListener('change', async () => {
+            await fetch('/api/teacher/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enable_autocomplete: autocompleteToggle.checked })
+            });
+            alert('Settings updated!');
+        });
+
+        async function loadTickets() {
+            const response = await fetch('/api/ticket/my_tickets');
+            if (!response.ok) return;
+            const tickets = await response.json();
+            ticketList.innerHTML = '';
+            tickets.forEach(ticket => {
+                const resolvedDate = ticket.resolved_at ? `Resolved: ${new Date(ticket.resolved_at).toLocaleString()}` : '';
+                ticketList.innerHTML += `
+                    <li style="cursor: default;">
+                        <div>
+                            <p>${ticket.query_text}</p>
+                            <small>Created: ${new Date(ticket.created_at).toLocaleString()}</small>
+                            <small style="margin-left: 1rem;">${resolvedDate}</small>
+                        </div>
+                        <span class="ticket-status ${ticket.status}">${ticket.status}</span>
+                    </li>
+                `;
+            });
+        }
+
+        document.getElementById('ticket-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const query_text = document.getElementById('query_text').value;
+            const response = await fetch('/api/ticket/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query_text })
+            });
+            const data = await response.json();
+            msgEl.textContent = data.message;
+            msgEl.style.display = 'block';
+            if (response.ok) {
+                msgEl.className = 'success';
+                document.getElementById('ticket-form').reset();
+                loadTickets();
+            } else {
+                msgEl.className = 'error';
+            }
+        });
+
+        loadAssignments();
+        loadSettings();
+        loadTickets();
+        loadTeacherInfo();
+    </script>
+</body>
+</html>

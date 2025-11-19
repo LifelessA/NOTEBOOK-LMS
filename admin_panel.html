@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Panel</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --cell-bg: #2d2d2d;
+            --border-color: #3a3a3a;
+            --primary-color: #007acc;
+            --danger-color: #c82333;
+        }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg-color);
+            color: #d4d4d4;
+            margin: 0;
+            padding: 2rem;
+        }
+        h1, h2 { border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+        }
+        .panel {
+            background: var(--cell-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            flex: 1;
+            min-width: 400px;
+            margin-bottom: 1rem; /* Add margin for spacing */
+        }
+        .input-group { margin-bottom: 1rem; }
+        .input-group label { display: block; margin-bottom: 0.5rem; color: #aaa; }
+        .input-group input, .input-group select, .input-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: #1e1e1e;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: #d4d4d4;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 0.75rem 1.5rem;
+            background: var(--primary-color);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: #005a9e; }
+        button.delete-btn, button.close-btn {
+            background: var(--danger-color);
+            padding: 5px 10px;
+            font-size: 0.8rem;
+        }
+        button.delete-btn:hover, button.close-btn:hover { background: #a71d2a; }
+        #user-list, #ticket-list { list-style: none; padding: 0; }
+        #user-list li, #ticket-list li {
+            background: #333;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #user-list .user-info, #ticket-list .ticket-info { flex-grow: 1; }
+        #user-list .user-details, #ticket-list .ticket-details { font-size: 0.8rem; color: #aaa; display: block; }
+        #user-list .role {
+            font-style: italic;
+            color: #aaa;
+            margin: 0 1rem;
+        }
+        #ticket-list .ticket-status {
+            font-style: italic;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+        #ticket-list .ticket-status.open { background-color: #28a745; color: white; }
+        #ticket-list .ticket-status.closed { background-color: #6c757d; color: white; }
+        #msg { margin-top: 1rem; display: none; }
+        #msg.success { color: #4CAF50; }
+        #msg.error { color: #ff5555; }
+        #logout-btn {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            background: var(--danger-color);
+        }
+        .hidden { display: none; }
+
+        /* Edit Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+        }
+        .modal-content {
+            background-color: var(--cell-bg);
+            margin: 10% auto;
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+            width: 80%;
+            max-width: 500px;
+            border-radius: 8px;
+            position: relative;
+        }
+        .close-btn {
+            color: #aaa;
+            position: absolute;
+            top: 1rem;
+            right: 1.5rem;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-btn:hover { color: #fff; }
+        button.edit-btn {
+            background: #ffc107;
+            color: #1e1e1e;
+        }
+        button.edit-btn:hover {
+            background: #e0a800;
+        }
+    </style>
+</head>
+<body>
+    <a href="/logout"><button id="logout-btn">Logout</button></a>
+    <h1>Admin Panel</h1>
+    
+    <div class="container">
+        <div class="panel">
+            <h2>Create New User</h2>
+            <form id="create-user-form">
+                <div class="input-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" required>
+                </div>
+                <div class="input-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required>
+                </div>
+                <div class="input-group">
+                    <label for="role">Role</label>
+                    <select id="role">
+                        <option value="teacher">Teacher</option>
+                        <option value="student">Student</option>
+                    </select>
+                </div>
+                <div class="input-group hidden" id="semesters-group">
+                    <label>Semesters</label>
+                    <div id="semesters-checkboxes"></div>
+                </div>
+                <div class="input-group" id="subjects-group">
+                    <label>Subjects</label>
+                    <div id="subjects-checkboxes"></div>
+                </div>
+                <button type="submit">Create User</button>
+            </form>
+            <p id="msg"></p>
+        </div>
+        <div class="panel">
+            <h2>Existing Users</h2>
+            <ul id="user-list"></ul>
+        </div>
+    </div>
+    <div class="container">
+        <div class="panel">
+            <h2>Ticket Management</h2>
+            <ul id="ticket-list"></ul>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeEditModal()">&times;</span>
+            <h2>Edit User</h2>
+            <form id="edit-user-form">
+                <input type="hidden" id="edit-user-id">
+                <div class="input-group">
+                    <label for="edit-name">Name</label>
+                    <input type="text" id="edit-name" required>
+                </div>
+                <div class="input-group">
+                    <label for="edit-username">Username (read-only)</label>
+                    <input type="text" id="edit-username" readonly>
+                </div>
+                <div class="input-group">
+                    <label for="edit-role">Role</label>
+                    <select id="edit-role">
+                        <option value="teacher">Teacher</option>
+                        <option value="student">Student</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Semesters</label>
+                    <div id="edit-semesters-checkboxes"></div>
+                </div>
+                <div class="input-group">
+                    <label>Subjects</label>
+                    <div id="edit-subjects-checkboxes"></div>
+                </div>
+                <button type="submit">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const userList = document.getElementById('user-list');
+        const ticketList = document.getElementById('ticket-list');
+        const msgEl = document.getElementById('msg');
+        const roleSelect = document.getElementById('role');
+        const semestersGroup = document.getElementById('semesters-group');
+        const subjectsGroup = document.getElementById('subjects-group');
+        const editModal = document.getElementById('edit-modal');
+        const semestersCheckboxes = document.getElementById('semesters-checkboxes');
+        const subjectsCheckboxes = document.getElementById('subjects-checkboxes');
+        const editSemestersCheckboxes = document.getElementById('edit-semesters-checkboxes');
+        const editSubjectsCheckboxes = document.getElementById('edit-subjects-checkboxes');
+        const availableSemesters = ['1', '2', '3', '4', '5', '6', '7', '8'];
+        const availableSubjects = ['Python', 'Data Science', 'DSA', 'DA'];
+
+        function createCheckboxes(container, items, name) {
+            container.innerHTML = '';
+            items.forEach(item => {
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.name = name;
+                checkbox.value = item;
+                checkbox.id = `${name}-${item}`;
+                
+                const label = document.createElement('label');
+                label.htmlFor = `${name}-${item}`;
+                label.textContent = item;
+                
+                const div = document.createElement('div');
+                div.appendChild(checkbox);
+                div.appendChild(label);
+                container.appendChild(div);
+            });
+        }
+
+        createCheckboxes(semestersCheckboxes, availableSemesters, 'semester');
+        createCheckboxes(subjectsCheckboxes, availableSubjects, 'subject');
+        createCheckboxes(editSemestersCheckboxes, availableSemesters, 'edit-semester');
+        createCheckboxes(editSubjectsCheckboxes, availableSubjects, 'edit-subject');
+
+
+        function toggleRoleFields() {
+            semestersGroup.classList.remove('hidden'); // Always show semesters
+            subjectsGroup.classList.remove('hidden'); // Always show subjects
+        }
+        
+        roleSelect.addEventListener('change', toggleRoleFields);
+
+        async function loadUsers() {
+            const response = await fetch('/api/admin/users');
+            if (response.ok) {
+                const users = await response.json();
+                userList.innerHTML = '';
+                users.forEach(user => {
+                    if (user.role === 'admin') return;
+                    
+                    let details = [];
+                    if(user.semesters) details.push(`Semesters: ${user.semesters}`);
+                    if(user.subjects) details.push(`Subjects: ${user.subjects}`);
+
+                    userList.innerHTML += `
+                        <li>
+                            <div class="user-info">
+                                <strong>${user.name}</strong> (${user.username})
+                                <span class="user-details">${details.join(' | ')}</span>
+                            </div>
+                            <span class="role">${user.role}</span>
+                            <div>
+                                <button class="edit-btn" onclick="openEditModal(${user.id})">Edit</button>
+                                <button class="delete-btn" onclick="deleteUser(${user.id}, '${user.username}')">Delete</button>
+                            </div>
+                        </li>
+                    `;
+                });
+            }
+        }
+
+        async function deleteUser(userId, username) {
+            if (!confirm(`Are you sure you want to delete user '${username}'? This cannot be undone.`)) {
+                return;
+            }
+            
+            const response = await fetch(`/api/admin/user/${userId}`, { method: 'DELETE' });
+            const data = await response.json();
+            
+            msgEl.textContent = data.message;
+            msgEl.style.display = 'block';
+
+            if (response.ok) {
+                msgEl.className = 'success';
+                loadUsers();
+            } else {
+                msgEl.className = 'error';
+            }
+        }
+
+        document.getElementById('create-user-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('role').value;
+            const semesters = Array.from(document.querySelectorAll('input[name="semester"]:checked')).map(cb => cb.value).join(',');
+            const subjects = Array.from(document.querySelectorAll('input[name="subject"]:checked')).map(cb => cb.value).join(',');
+            
+            const response = await fetch('/api/admin/create_user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, username, password, role, semesters, subjects })
+            });
+
+            const data = await response.json();
+            msgEl.textContent = data.message;
+            msgEl.style.display = 'block';
+
+            if (response.ok) {
+                msgEl.className = 'success';
+                document.getElementById('create-user-form').reset();
+                toggleRoleFields();
+                loadUsers();
+            } else {
+                msgEl.className = 'error';
+            }
+        });
+
+        async function loadTickets() {
+            const response = await fetch('/api/admin/tickets');
+            if (!response.ok) return;
+            const tickets = await response.json();
+            ticketList.innerHTML = '';
+            tickets.forEach(ticket => {
+                const date = new Date(ticket.created_at).toLocaleString();
+                ticketList.innerHTML += `
+                    <li>
+                        <div class="ticket-info">
+                            <strong>${ticket.name}</strong> (${ticket.username})
+                            <p>${ticket.query_text}</p>
+                            <span class="ticket-details">Raised on: ${date}</span>
+                        </div>
+                        <div>
+                            <span class="ticket-status ${ticket.status}">${ticket.status}</span>
+                            ${ticket.status === 'open' ? `<button class="close-btn" onclick="closeTicket(${ticket.id})">Close Ticket</button>` : ''}
+                        </div>
+                    </li>
+                `;
+            });
+        }
+
+        async function closeTicket(ticketId) {
+            if (!confirm('Are you sure you want to close this ticket?')) return;
+            
+            const response = await fetch(`/api/admin/ticket/close/${ticketId}`, { method: 'POST' });
+            const data = await response.json();
+
+            msgEl.textContent = data.message;
+            msgEl.style.display = 'block';
+
+            if (response.ok) {
+                msgEl.className = 'success';
+                loadTickets();
+            } else {
+                msgEl.className = 'error';
+            }
+        }
+
+        // --- Edit User Modal Logic ---
+        async function openEditModal(userId) {
+            const response = await fetch(`/api/admin/user/${userId}`);
+            if (!response.ok) {
+                alert('Failed to fetch user data.');
+                return;
+            }
+            const user = await response.json();
+
+            document.getElementById('edit-user-id').value = user.id;
+            document.getElementById('edit-name').value = user.name;
+            document.getElementById('edit-username').value = user.username;
+            document.getElementById('edit-role').value = user.role;
+
+            Array.from(document.querySelectorAll('input[name="edit-semester"]')).forEach(cb => cb.checked = false);
+            Array.from(document.querySelectorAll('input[name="edit-subject"]')).forEach(cb => cb.checked = false);
+
+            const userSemesters = user.semesters ? user.semesters.split(',') : [];
+            userSemesters.forEach(s => {
+                const checkbox = document.getElementById(`edit-semester-${s}`);
+                if (checkbox) checkbox.checked = true;
+            });
+            const userSubjects = user.subjects ? user.subjects.split(',') : [];
+            userSubjects.forEach(s => {
+                const checkbox = document.getElementById(`edit-subject-${s}`);
+                if (checkbox) checkbox.checked = true;
+            });
+            
+            editModal.style.display = 'block';
+        }
+
+        function closeEditModal() {
+            editModal.style.display = 'none';
+        }
+
+        document.getElementById('edit-user-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userId = document.getElementById('edit-user-id').value;
+            const payload = {
+                name: document.getElementById('edit-name').value,
+                role: document.getElementById('edit-role').value,
+                semesters: Array.from(document.querySelectorAll('input[name="edit-semester"]:checked')).map(cb => cb.value).join(','),
+                subjects: Array.from(document.querySelectorAll('input[name="edit-subject"]:checked')).map(cb => cb.value).join(','),
+            };
+
+            const response = await fetch(`/api/admin/user/${userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+            msgEl.textContent = data.message;
+            msgEl.style.display = 'block';
+
+            if (response.ok) {
+                msgEl.className = 'success';
+                closeEditModal();
+                loadUsers();
+            } else {
+                msgEl.className = 'error';
+            }
+        });
+
+        // Close modal if user clicks outside of it
+        window.onclick = function(event) {
+            if (event.target == editModal) {
+                closeEditModal();
+            }
+        }
+
+        // Initial setup
+        toggleRoleFields();
+        loadUsers();
+        loadTickets();
+    </script>
+</body>
+</html>
